@@ -1,6 +1,7 @@
 
 /* Copyright (c) 2005-2014, Stefan Eilemann <eile@equalizergraphics.com>
  *               2012-2014, Daniel Nachbaur <danielnachbaur@gmail.com>
+ *               2014, David Steiner <steiner@ifi.uzh.ch>
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
  *
