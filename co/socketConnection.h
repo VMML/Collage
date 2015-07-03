@@ -1,5 +1,6 @@
 
 /* Copyright (c) 2005-2013, Stefan Eilemann <eile@equalizergraphics.com>
+ *                    2014, David Steiner <steiner@ifi.uzh.ch>
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
  *
@@ -60,6 +61,7 @@ namespace co
         ConnectionPtr acceptSync() override;
         void close() override { _close(); }
 
+        virtual RoundTripTime getRTT() const;
 
 #ifdef WIN32
         /** @sa Connection::getNotifier */

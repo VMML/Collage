@@ -2,6 +2,7 @@
 /* Copyright (c) 2011-2014, Stefan Eilemann <eile@eyescale.ch>
  *                    2011, Carsten Rohn <carsten.rohn@rtt.ag>
  *               2011-2012, Daniel Nachbaur <danielnachbaur@gmail.com>
+ *                    2014, David Steiner <steiner@ifi.uzh.ch>
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
  *
@@ -23,8 +24,9 @@
 #define CO_QUEUESLAVE_H
 
 #include <co/api.h>
-#include <co/object.h> // base class
+#include <co/consumer.h> // base class
 #include <co/types.h>
+#include <co/slaveFeedback.h>
 
 namespace co
 {
@@ -36,7 +38,7 @@ namespace detail { class QueueSlave; }
  * One or more instances of this class are mapped to the identifier of the
  * QueueMaster registered on another node.
  */
-class QueueSlave : public Object
+class QueueSlave : public Consumer
 {
 public:
     /**
@@ -72,6 +74,34 @@ public:
      * @version 1.0
      */
     CO_API ObjectICommand pop( const uint32_t timeout = LB_TIMEOUT_INDEFINITE );
+
+    /**
+     * Send feedback to the master queue.
+     *
+     * @version 1.x
+     */
+    CO_API SlaveFeedback sendSlaveFeedback();
+
+    /**
+     * Set score of this slave queue.
+     *
+     * @version 1.x
+     */
+    CO_API void setScore(float score);
+
+    /**
+     * Set score of this slave queue.
+     *
+     * @version 1.x
+     */
+    CO_API float getScore();
+
+    /**
+     * Reset score of this slave queue.
+     *
+     * @version 1.x
+     */
+    CO_API void resetScore();
 
 protected:
     ChangeType getChangeType() const override { return STATIC; }

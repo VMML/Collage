@@ -1,5 +1,6 @@
 
 /* Copyright (c) 2012, Daniel Nachbaur <danielnachbaur@gmail.com>
+ *               2013-2015, David Steiner <steiner@ifi.uzh.ch>
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
  *
@@ -18,6 +19,7 @@
  */
 
 #include "queueItem.h"
+#include <lunchbox/atomic.h>
 
 #include "queueMaster.h"
 
@@ -26,22 +28,30 @@ namespace co
 {
 namespace detail
 {
+
+static lunchbox::a_ssize_t nPackages;
 class QueueItem
 {
 public:
-    QueueItem( co::QueueMaster& queueMaster_ )
-        : queueMaster( queueMaster_ )
+    QueueItem( co::Producer& queueMaster_ )
+        : number( nPackages++ )
+        , positionHint( 0 )
+        , queueMaster( queueMaster_ )
     {}
 
     QueueItem( const QueueItem& rhs )
-        : queueMaster( rhs.queueMaster )
+        : number( nPackages++ )
+        , positionHint( 0 )
+        , queueMaster( rhs.queueMaster )
     {}
 
-    co::QueueMaster& queueMaster;
+    size_t number;
+    float positionHint;
+    co::Producer& queueMaster;
 };
 }
 
-QueueItem::QueueItem( QueueMaster& master )
+QueueItem::QueueItem( Producer& master )
     : DataOStream()
     , _impl( new detail::QueueItem( master ))
 {
@@ -62,6 +72,23 @@ QueueItem::~QueueItem()
     _impl->queueMaster._addItem( *this );
     disable();
     delete _impl;
+}
+
+QueueItem& QueueItem::setPositionHint( float posHint )
+{
+    _impl->positionHint = posHint;
+    
+    return *this;
+}
+
+size_t QueueItem::getNumber()
+{
+    return _impl->number;
+}
+
+float QueueItem::getPositionHint()
+{
+    return _impl->positionHint;
 }
 
 }

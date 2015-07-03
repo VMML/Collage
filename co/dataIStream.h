@@ -63,6 +63,10 @@ public:
     template< class T > DataIStream& operator >> ( T& value )
         { _read( &value, sizeof( value )); _swap( value ); return *this; }
 
+    /** Read a plain data item. @version 1.x */
+    template< class T > const DataIStream& operator >> ( T& value ) const
+        { _read( &value, sizeof( value )); _swap( value ); return *this; }
+
     /** Read a C array. @version 1.0 */
     template< class T > DataIStream& operator >> ( Array< T > array )
         { _readArray( array, boost::is_pod<T>( )); return *this; }
@@ -177,6 +181,9 @@ private:
 
     /** Read a number of bytes from the stream into a buffer. */
     CO_API void _read( void* data, uint64_t size );
+    
+    /** Read a number of bytes from the stream into a buffer. */
+    CO_API void _read( void* data, uint64_t size ) const;
 
     /**
      * Check that the current buffer has data left, get the next buffer is

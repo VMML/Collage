@@ -2,6 +2,7 @@
 # Copyright (c)      2010 Cedric Stalder <cedric.stalder@gmail.ch>
 #               2011-2014 Stefan Eilemann <eile@eyescale.ch>
 #                    2012 Daniel Nachbaur <danielnachbaur@gmail.com>
+#                    2013 David Steiner <steiner@ifi.uzh.ch>
 
 set(COLLAGE_PUBLIC_HEADERS
   ${COMMON_INCLUDES}
@@ -9,6 +10,7 @@ set(COLLAGE_PUBLIC_HEADERS
   buffer.h
   bufferConnection.h
   bufferListener.h
+  centLoadAwareDistributor.h
   commandFunc.h
   commandQueue.h
   commands.h
@@ -16,6 +18,7 @@ set(COLLAGE_PUBLIC_HEADERS
   connectionDescription.h
   connectionSet.h
   connectionType.h
+  consumer.h
   customICommand.h
   customOCommand.h
   dataIStream.h
@@ -28,11 +31,15 @@ set(COLLAGE_PUBLIC_HEADERS
   dataOStreamArchive.ipp
   dataStreamArchiveException.h
   dispatcher.h
+  equalDistributor.h
+  packageDistributor.h
   exception.h
   features.h
   global.h
   iCommand.h
   init.h
+  latencyAwareDistributor.h
+  loadAwareDistributor.h
   localNode.h
   log.h
   node.h
@@ -45,11 +52,18 @@ set(COLLAGE_PUBLIC_HEADERS
   objectMap.h
   objectOCommand.h
   objectVersion.h
+  perfLogger.h
+  producer.h
   queueItem.h
   queueMaster.h
   queueSlave.h
+  randomDistributor.h
   sendToken.h
   serializable.h
+  slaveFeedback.h
+  stealingQueueCommand.h
+  stealingQueueMaster.h
+  stealingQueueSlave.h
   types.h
   worker.h
   worker.ipp
@@ -96,6 +110,7 @@ set(COLLAGE_SOURCES
   buffer.cpp
   bufferCache.cpp
   bufferConnection.cpp
+  centLoadAwareDistributor.cpp
   commandQueue.cpp
   connection.cpp
   connectionDescription.cpp
@@ -109,12 +124,15 @@ set(COLLAGE_SOURCES
   dataOStreamArchive.cpp
   deltaMasterCM.cpp
   dispatcher.cpp
+  equalDistributor.cpp
   eventConnection.cpp
   fullMasterCM.cpp
   global.cpp
   iCommand.cpp
   init.cpp
   instanceCache.cpp
+  latencyAwareDistributor.cpp
+  loadAwareDistributor.cpp
   localNode.cpp
   masterCMCommand.cpp
   node.cpp
@@ -138,11 +156,15 @@ set(COLLAGE_SOURCES
   queueItem.cpp
   queueMaster.cpp
   queueSlave.cpp
+  randomDistributor.cpp
   rspConnection.cpp
   sendToken.cpp
   serializable.cpp
+  slaveFeedback.cpp
   socketConnection.cpp
   staticSlaveCM.cpp
+  stealingQueueMaster.cpp
+  stealingQueueSlave.cpp
   unbufferedMasterCM.cpp
   versionedMasterCM.cpp
   versionedSlaveCM.cpp

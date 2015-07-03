@@ -2,6 +2,7 @@
 /* Copyright (c) 2005-2013, Stefan Eilemann <eile@equalizergraphics.com>
  *                    2010, Cedric Stalder <cedric.stalder@gmail.com>
  *               2012-2014, Daniel Nachbaur <danielnachbaur@gmail.com>
+ *                    2014, David Steiner <steiner@ifi.uzh.ch>
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
  *
@@ -221,6 +222,7 @@ CO_API std::ostream& operator << ( std::ostream& os, const Node& node );
 namespace lunchbox
 {
 template<> inline void byteswap( co::Node*& ) { /*NOP*/ }
+template<> inline void byteswap( co::Node& ) { /*NOP*/ }        // TEST
 template<> inline void byteswap( co::NodePtr& ) { /*NOP*/ }
 }
 

@@ -1,5 +1,6 @@
 
 /* Copyright (c) 2005-2013, Stefan Eilemann <eile@equalizergraphics.com>
+ *                    2015, David Steiner   <steiner@ifi.uzh.ch>
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
  *
@@ -80,28 +81,28 @@ namespace co
         /** Global integer attributes. */
         enum IAttribute
         {
-            IATTR_INSTANCE_CACHE_SIZE,   //!< @internal max size in MB
+            IATTR_INSTANCE_CACHE_SIZE,      //!< @internal max size in MB
             /** @internal send-on-register queue size */
             IATTR_NODE_SEND_QUEUE_SIZE,
-            IATTR_NODE_SEND_QUEUE_AGE,   //!< @internal send-on-register max age
-            IATTR_RSP_ACK_TIMEOUT,       //!< @internal time out for ack req
-            IATTR_RSP_ERROR_DOWNSCALE,   //!< @internal permille per lost packet
-            IATTR_RSP_ERROR_UPSCALE,     //!< @internal permille per sent packet
-            IATTR_RSP_ERROR_MAXSCALE,    //!< @internal max percent change
-            IATTR_RSP_MIN_SENDRATE_SHIFT, //!< @internal minBW = sendRate >> val
-            IATTR_RSP_NUM_BUFFERS,       //!< @internal data buffers
-            IATTR_RSP_ACK_FREQUENCY,     //!< @internal reader ack interval
-            IATTR_UDP_MTU,               //!< @internal max send size on UDP
-            IATTR_UDP_BUFFER_SIZE,       //!< @internal send/receiver buffer
-            IATTR_TILE_QUEUE_MIN_SIZE,   //!< @internal (tile) queue min size
-            IATTR_TILE_QUEUE_REFILL,     //!< @internal (tile) queue refill size
+            IATTR_NODE_SEND_QUEUE_AGE,      //!< @internal send-on-register max age
+            IATTR_RSP_ACK_TIMEOUT,          //!< @internal time out for ack req
+            IATTR_RSP_ERROR_DOWNSCALE,      //!< @internal permille per lost packet
+            IATTR_RSP_ERROR_UPSCALE,        //!< @internal permille per sent packet
+            IATTR_RSP_ERROR_MAXSCALE,       //!< @internal max percent change
+            IATTR_RSP_MIN_SENDRATE_SHIFT,   //!< @internal minBW = sendRate >> val
+            IATTR_RSP_NUM_BUFFERS,          //!< @internal data buffers
+            IATTR_RSP_ACK_FREQUENCY,        //!< @internal reader ack interval
+            IATTR_UDP_MTU,                  //!< @internal max send size on UDP
+            IATTR_UDP_BUFFER_SIZE,          //!< @internal send/receiver buffer
+            IATTR_QUEUE_MIN_SIZE,           //!< @internal (tile) queue min size
+            IATTR_QUEUE_REFILL,             //!< @internal (tile) queue refill size
             IATTR_RDMA_RING_BUFFER_SIZE_MB, //!< @internal send/receive buffer
-            IATTR_RDMA_SEND_QUEUE_DEPTH, //!< @internal max send credits
-            IATTR_RDMA_RESOLVE_TIMEOUT_MS, //!< @internal address resolution
-            IATTR_ROBUSTNESS,            //!< @internal use robustness
-            IATTR_TIMEOUT_DEFAULT,       //!< @internal default timeout
-            IATTR_OBJECT_COMPRESSION,    //!< @internal threshold to compress
-            IATTR_CMD_QUEUE_LIMIT,     //!< @internal max cmd thread q size/1024
+            IATTR_RDMA_SEND_QUEUE_DEPTH,    //!< @internal max send credits
+            IATTR_RDMA_RESOLVE_TIMEOUT_MS,  //!< @internal address resolution
+            IATTR_ROBUSTNESS,               //!< @internal use robustness
+            IATTR_TIMEOUT_DEFAULT,          //!< @internal default timeout
+            IATTR_OBJECT_COMPRESSION,       //!< @internal threshold to compress
+            IATTR_CMD_QUEUE_LIMIT,          //!< @internal max cmd thread q size/1024
             IATTR_ALL
         };
 

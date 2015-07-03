@@ -1,6 +1,7 @@
 
 /* Copyright (c) 2006-2014, Stefan Eilemann <eile@equalizergraphics.com>
  *               2011-2012, Daniel Nachbaur <danielnachbaur@gmail.com>
+ *                    2014, David Steiner <steiner@ifi.uzh.ch>
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
  *
@@ -45,10 +46,12 @@ class CommandQueue;
 class Connection;
 class ConnectionDescription;
 class ConnectionListener;
+class Consumer;
 class CustomICommand;
 class CustomOCommand;
 class DataIStream;
 class DataOStream;
+class PackageDistributor;
 class Global;
 class ICommand;
 class LocalNode;
@@ -62,10 +65,15 @@ class ObjectDataOCommand;
 class ObjectFactory;
 class ObjectHandler;
 class ObjectOCommand;
+class PerfLogger;
+class Producer;
 class QueueItem;
 class QueueMaster;
 class QueueSlave;
+class StealingQueueMaster;
+class StealingQueueSlave;
 class Serializable;
+class SlaveFeedback;
 class Zeroconf;
 template< class Q > class WorkerThread;
 struct ObjectVersion;
@@ -98,6 +106,9 @@ typedef lunchbox::RefPtr< ConnectionDescription > ConnectionDescriptionPtr;
 /** A reference pointer for const ConnectionDescription pointers. */
 typedef lunchbox::RefPtr< const ConnectionDescription >
                                                   ConstConnectionDescriptionPtr;
+/** A reference pointer for PackageDistributor pointers. */
+typedef lunchbox::RefPtr< PackageDistributor >  PackageDistributorPtr;
+
 /** A vector of ConnectionListener */
 typedef std::vector< ConnectionListener* > ConnectionListeners;
 

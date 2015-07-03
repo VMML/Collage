@@ -2,6 +2,7 @@
 /* Copyright (c) 2011-2014, Stefan Eilemann <eile@eyescale.ch>
  *                    2011, Carsten Rohn <carsten.rohn@rtt.ag>
  *               2011-2012, Daniel Nachbaur <danielnachbaur@gmail.com>
+ *                    2014, David Steiner <steiner@ifi.uzh.ch>
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
  *
@@ -40,16 +41,17 @@ public:
     QueueSlave( const uint32_t mark, const uint32_t amount)
         : masterInstanceID( CO_INSTANCE_ALL )
         , prefetchMark( mark == LB_UNDEFINED_UINT32 ?
-                    Global::getIAttribute( Global::IATTR_TILE_QUEUE_MIN_SIZE ) :
+                    Global::getIAttribute( Global::IATTR_QUEUE_MIN_SIZE ) :
                         mark )
         , prefetchAmount( amount == LB_UNDEFINED_UINT32 ?
-                      Global::getIAttribute( Global::IATTR_TILE_QUEUE_REFILL ) :
+                      Global::getIAttribute( Global::IATTR_QUEUE_REFILL ) :
                           amount )
     {}
 
     co::CommandQueue queue;
     NodePtr master;
     uint32_t masterInstanceID;
+    float score;
 
     const uint32_t prefetchMark;
     const uint32_t prefetchAmount;
@@ -59,7 +61,9 @@ public:
 QueueSlave::QueueSlave( const uint32_t prefetchMark,
                         const uint32_t prefetchAmount )
         : _impl( new detail::QueueSlave( prefetchMark, prefetchAmount ))
-{}
+{
+    resetScore();
+}
 
 QueueSlave::~QueueSlave()
 {
@@ -95,7 +99,7 @@ ObjectICommand QueueSlave::pop( const uint32_t timeout )
         if( queueSize <= _impl->prefetchMark )
         {
             send( _impl->master, CMD_QUEUE_GET_ITEM, _impl->masterInstanceID )
-                    << _impl->prefetchAmount << getInstanceID() << request;
+                  << _impl->prefetchAmount << _impl->score << getInstanceID() << request;
         }
 
         try
@@ -121,6 +125,26 @@ ObjectICommand QueueSlave::pop( const uint32_t timeout )
             return ObjectICommand( 0, 0, 0, false );
         }
     }
+}
+
+SlaveFeedback QueueSlave::sendSlaveFeedback()
+{
+    return SlaveFeedback(*this, _impl->master, _impl->masterInstanceID);
+}
+
+void QueueSlave::setScore(float score)
+{
+    _impl->score = score;
+}
+
+float QueueSlave::getScore()
+{
+    return _impl->score;
+}
+
+void QueueSlave::resetScore()
+{
+    _impl->score = 0;
 }
 
 }

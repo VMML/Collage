@@ -1,6 +1,7 @@
 
 /* Copyright (c) 2012, Daniel Nachbaur <danielnachbaur@gmail.com>
  *               2012-2014, Stefan.Eilemann@epfl.ch
+ *               2013, David Steiner <steiner@ifi.uzh.ch>
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
  *
@@ -46,6 +47,9 @@ class Buffer : public lunchbox::Bufferb, public lunchbox::Referenced
 public:
     /** Construct a new buffer. @version 1.0 */
     CO_API Buffer( BufferListener* listener = 0 );
+    
+    /** Construct a new buffer. @version 1.0 */
+    CO_API Buffer( lunchbox::Bufferb& from, BufferListener* listener = 0 );
 
     /** Destruct this buffer. @version 1.0 */
     CO_API virtual ~Buffer();

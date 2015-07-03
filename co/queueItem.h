@@ -1,5 +1,6 @@
 
 /* Copyright (c) 2012, Daniel Nachbaur <danielnachbaur@gmail.com>
+ *               2013, David Steiner <steiner@ifi.uzh.ch>
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
  *
@@ -39,12 +40,17 @@ class QueueItem : public DataOStream
 public:
     /** Destruct this queue item. @version 1.0 */
     CO_API ~QueueItem();
+    
+    QueueItem( Producer& master );
+    QueueItem( const QueueItem& rhs );
+    
+    QueueItem &setPositionHint( float pos );
+
+    size_t getNumber();
+
+    float getPositionHint();
 
 private:
-    friend class QueueMaster;
-
-    QueueItem( QueueMaster& master );
-    QueueItem( const QueueItem& rhs );
 
     void sendData( const void*, const uint64_t, const bool ) override
         { LBDONTCALL }

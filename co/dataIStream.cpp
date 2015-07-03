@@ -124,6 +124,30 @@ void DataIStream::_read( void* data, uint64_t size )
     _impl->position += size;
 }
 
+void DataIStream::_read( void* data, uint64_t size ) const
+{
+//     if( !_checkBuffer( ))
+//     {
+//         LBUNREACHABLE;
+//         LBERROR << "No more input data" << std::endl;
+//         return;
+//     }
+
+    LBASSERT( _impl->input );
+    if( size > _impl->inputSize - _impl->position )
+    {
+        LBERROR << "Not enough data in input buffer: need " << size
+                << " bytes, " << _impl->inputSize - _impl->position << " left "
+                << std::endl;
+        LBUNREACHABLE;
+        // TODO: Allow reads which are asymmetric to writes by reading from
+        // multiple blocks here?
+        return;
+    }
+
+    memcpy( data, _impl->input + _impl->position, size );
+}
+
 const void* DataIStream::getRemainingBuffer( const uint64_t size )
 {
     if( !_checkBuffer( ))

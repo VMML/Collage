@@ -246,6 +246,11 @@ public:
 #endif
     /** @return the notifier signaling events. @version 1.0 */
     virtual Notifier getNotifier() const = 0;
+        
+        typedef int RoundTripTime;
+        
+        /** @return round trip time for this connection. @version 1.x */
+        virtual RoundTripTime getRTT() const { return -1; }
 
 protected:
     /** Construct a new connection. */

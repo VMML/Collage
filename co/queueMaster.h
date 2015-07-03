@@ -2,6 +2,7 @@
 /* Copyright (c) 2011-2014, Stefan Eilemann <eile@eyescale.ch>
  *                    2011, Carsten Rohn <carsten.rohn@rtt.ag>
  *               2011-2012, Daniel Nachbaur <danielnachbaur@gmail.com>
+ *               2013-2015, David Steiner <steiner@ifi.uzh.ch>
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
  *
@@ -22,7 +23,8 @@
 #ifndef CO_QUEUEMASTER_H
 #define CO_QUEUEMASTER_H
 
-#include <co/object.h> // base class
+#include "producer.h" // base class
+
 #include <co/types.h>
 
 namespace co
@@ -36,7 +38,7 @@ namespace detail { class QueueMaster; }
  * end of a distributed queue. One or more QueueSlave instances are mapped to
  * this master instance and consume the data.
  */
-class QueueMaster : public Object
+class QueueMaster : public Producer
 {
 public:
     /** Construct a new queue master. @version 1.0 */
@@ -44,6 +46,20 @@ public:
 
     /** Destruct this queue master. @version 1.0 */
     virtual CO_API ~QueueMaster();
+
+    /**
+     * Set distribution strategy for this queue.
+     *
+     * @version 1.x
+     */
+    CO_API void setPackageDistributor( PackageDistributorPtr distributor );
+
+    /**
+     * Get this queues distribution strategy.
+     *
+     * @version 1.x
+     */
+    CO_API PackageDistributorPtr getPackageDistributor();
 
     /**
      * Enqueue a new queue item.
@@ -60,6 +76,13 @@ public:
     /** Remove all enqueued items. @version 1.0 */
     CO_API void clear();
 
+    /** Notify this queue that the end has been reached. @version 1.x */
+    CO_API void notifyEnd();
+
+    CO_API void setSlaveNodes( const co::Nodes& nodes );
+
+    CO_API void setPerfLogger( co::PerfLogger *perfLogger );
+
 private:
     detail::QueueMaster* const _impl;
 
@@ -70,7 +93,6 @@ private:
     void getInstanceData( co::DataOStream& os ) override;
     void applyInstanceData( co::DataIStream& ) override { LBDONTCALL }
 
-    friend class QueueItem;
     void _addItem( QueueItem& item );
 };
 

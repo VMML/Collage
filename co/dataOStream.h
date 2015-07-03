@@ -2,6 +2,7 @@
 /* Copyright (c) 2007-2015, Stefan Eilemann <eile@equalizergraphics.com>
  *                    2010, Cedric Stalder <cedric.stalder@gmail.com>
  *               2012-2014, Daniel Nachbaur <danielnachbaur@gmail.com>
+ *                    2013, David Steiner <steiner@ifi.uzh.ch>
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
  *
@@ -132,13 +133,13 @@ public:
     void serializeChildren( const std::vector< C* >& children );
     //@}
 
+        /** @internal */
+        CO_API lunchbox::Bufferb& getBuffer();
+
 protected:
     CO_API DataOStream(); //!< @internal
     DataOStream( DataOStream& rhs );  //!< @internal
     virtual CO_API ~DataOStream(); //!< @internal
-
-    /** @internal */
-    CO_API lunchbox::Bufferb& getBuffer();
 
     /** @internal Initialize the given compressor. */
     void _initCompressor( const uint32_t compressor );

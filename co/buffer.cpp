@@ -1,6 +1,7 @@
 
 /* Copyright (c) 2012, Daniel Nachbaur <danielnachbaur@gmail.com>
  *               2012-2014, Stefan.Eilemann@epfl.ch
+ *               2013, David Steiner <steiner@ifi.uzh.ch>
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
  *
@@ -40,6 +41,13 @@ public:
 
 Buffer::Buffer( BufferListener* listener )
     : lunchbox::Bufferb()
+    , lunchbox::Referenced()
+    , _impl( new detail::Buffer( listener ))
+{
+}
+
+Buffer::Buffer( lunchbox::Bufferb& from, BufferListener* listener )
+    : lunchbox::Bufferb(from)
     , lunchbox::Referenced()
     , _impl( new detail::Buffer( listener ))
 {

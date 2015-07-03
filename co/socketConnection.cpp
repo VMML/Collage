@@ -1,6 +1,7 @@
 
 /* Copyright (c) 2005-2014, Stefan Eilemann <eile@equalizergraphics.com>
  *                    2010, Daniel Nachbaur <danielnachbaur@gmail.com>
+ *                    2014, David Steiner <steiner@ifi.uzh.ch>
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
  *
@@ -368,6 +369,11 @@ ConnectionPtr SocketConnection::acceptSync()
     return connection;
 }
 
+Connection::RoundTripTime SocketConnection::getRTT() const
+{
+    return -1;  // TODO: implement
+}
+
 #else // !_WIN32
 
 void SocketConnection::acceptNB(){ /* NOP */ }
@@ -407,6 +413,17 @@ ConnectionPtr SocketConnection::acceptSync()
 
     LBDEBUG << "Accepted " << newDescription->toString() << std::endl;
     return newConnection;
+}
+
+Connection::RoundTripTime SocketConnection::getRTT() const
+{
+    tcp_info tcpi;
+    socklen_t len = sizeof(tcpi);
+    if( getsockopt( _readFD, SOL_TCP, TCP_INFO, &tcpi, &len ) == 0 )
+    {
+        return tcpi.tcpi_rtt;
+    }
+    return -1;
 }
 
 #endif // !_WIN32
