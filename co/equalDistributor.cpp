@@ -133,7 +133,7 @@ bool EqualDistributor::cmdGetItem( co::ICommand& comd )
     {
         const detail::ItemBufferPtr item = *i;
         if( !item->isEmpty( ))
-            _impl->_producer.send( command.getNode(), CMD_QUEUE_ITEM, slaveInstanceID )
+            _impl->_producer.send( command.getNode(), CMD_QUEUE_ITEM, slaveInstanceID ) << false
                 << Array< const void >( item->getData(), item->getSize( ));
     }
 

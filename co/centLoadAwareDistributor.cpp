@@ -52,16 +52,16 @@ namespace detail
 class ItemBuffer : public lunchbox::Bufferb, public lunchbox::Referenced
 {
 public:
-    ItemBuffer( size_t number, lunchbox::Bufferb& from )
+    ItemBuffer( lunchbox::Bufferb& from )
         : lunchbox::Bufferb( from )
         , lunchbox::Referenced()
-        , _number( number )
+//         , _number( number )
     {}
 
     ~ItemBuffer()
     {}
     
-    size_t _number;
+//     size_t _number;
 };
 
 typedef lunchbox::RefPtr< ItemBuffer > ItemBufferPtr;
@@ -308,7 +308,7 @@ void CentLoadAwareDistributor::pushItem( QueueItem &item )
     ss << pos << "\tnumber\t" << number << "\t\t\t";
     _impl->_perfLogger->log(_impl->_producer.getLocalNode()->getNodeID(), "pushing item at", ss.str(), "SERVER");
 
-    detail::ItemBufferPtr newBuffer = new detail::ItemBuffer( number, item.getBuffer( ));
+    detail::ItemBufferPtr newBuffer = new detail::ItemBuffer( item.getBuffer( ));
     _impl->_itemMap.insert( pos, newBuffer );
 }
 
@@ -352,9 +352,9 @@ bool CentLoadAwareDistributor::cmdGetItem( co::ICommand& comd )
         const detail::ItemBufferPtr item = *i;
         if( !item->isEmpty( ))
         {
-            _impl->_producer.send( command.getNode(), CMD_QUEUE_ITEM, slaveInstanceID )
+            _impl->_producer.send( command.getNode(), CMD_QUEUE_ITEM, slaveInstanceID ) << false
                 << Array< const void >( item->getData(), item->getSize( ));
-            ss << item->_number << " ";
+//             ss << item->_number << " ";
             totalScore += 1.f;
         }
     }
@@ -372,7 +372,7 @@ bool CentLoadAwareDistributor::cmdGetItem( co::ICommand& comd )
         else
         {
             // dummy message to prevent slave from being stuck
-            _impl->_producer.send( command.getNode(), CMD_QUEUE_ITEM, slaveInstanceID ) << requestID;
+            _impl->_producer.send( command.getNode(), CMD_QUEUE_ITEM, slaveInstanceID ) << true;
         }
     }
 
