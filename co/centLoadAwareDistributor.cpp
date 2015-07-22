@@ -178,7 +178,7 @@ void CentLoadAwareDistributor::updateNodes()
         float sum = prevScore + nodeScore;
         float prevWeight = prevScore / sum;
         float weight = nodeScore / sum;
-        float prevBorder = prevPos * prevWeight + pos * weight;
+        float prevBorder = prevPos * weight + pos * prevWeight;
 
         int next;
         int nextIndex = next = i + 1;
@@ -198,7 +198,7 @@ void CentLoadAwareDistributor::updateNodes()
         sum = nodeScore + nextScore;
         float nextWeight = nextScore / sum;
         weight = nodeScore / sum;
-        float nextBorder = pos * weight + nextPos * nextWeight;
+        float nextBorder = pos * nextWeight + nextPos * weight;
 
         float newPos = (prevBorder + nextBorder) * .5f;         // resposition
         if( newPos < 0.f )
@@ -368,11 +368,13 @@ bool CentLoadAwareDistributor::cmdGetItem( co::ICommand& comd )
         if( _impl->_itemMap.size() < 1 )
         {
             _impl->_producer.send( command.getNode(), CMD_QUEUE_EMPTY, slaveInstanceID ) << requestID;
+            _impl->_perfLogger->log( nodeID, "sent empty queue command", ss.str( ), "SERVER");
         }
         else
         {
             // dummy message to prevent slave from being stuck
             _impl->_producer.send( command.getNode(), CMD_QUEUE_ITEM, slaveInstanceID ) << true;
+            _impl->_perfLogger->log( nodeID, "sent wait command", ss.str( ), "SERVER");
         }
     }
 
