@@ -312,9 +312,9 @@ bool RSPConnection::listen()
     LBASSERT( _appBuffers.isEmpty( ));
     _appBuffers.push( _buffers );
 
-    LBINFO << "Listening on " << description->getHostname() << ":"
-           << description->port << " (" << description->toString() << " @"
-           << (void*)this << ")" << std::endl;
+    LBDEBUG << "Listening on " << description->getHostname() << ":"
+            << description->port << " (" << description->toString() << " @"
+            << (void*)this << ")" << std::endl;
     return true;
 }
 
@@ -1009,7 +1009,7 @@ void RSPConnection::_handleConnectedData( const size_t bytes )
 
     void* data = _recvBuffer.getData();
     uint16_t type = *reinterpret_cast< uint16_t* >( data );
-#ifdef COLLAGE_BIGENDIAN
+#ifdef COMMON_BIGENDIAN
     lunchbox::byteswap( type );
 #endif
     switch( type )
