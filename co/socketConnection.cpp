@@ -37,6 +37,8 @@
 
 #ifdef _WIN32
 #  include <mswsock.h>
+#  include <winsock2.h>
+#  include <ws2tcpip.h>
 #  ifndef WSA_FLAG_SDP
 #    define WSA_FLAG_SDP 0x40
 #  endif
@@ -82,8 +84,19 @@ SocketConnection::~SocketConnection()
 
 namespace
 {
-static bool _parseAddress( ConstConnectionDescriptionPtr description,
-                           sockaddr_in& address )
+std::string getHostName( const sockaddr_in& address )
+{
+    char hostname[NI_MAXHOST];
+    if( getnameinfo( (sockaddr*)&address.sin_addr, sizeof(sockaddr_in),
+                     hostname, sizeof(hostname), 0, 0, 0 ) == 0 )
+    {
+        return std::string( hostname );
+    }
+    return std::string();
+}
+
+bool _parseAddress( ConstConnectionDescriptionPtr description,
+                    sockaddr_in& address )
 {
     address.sin_family      = AF_INET;
     address.sin_addr.s_addr = htonl( INADDR_ANY );
@@ -93,9 +106,18 @@ static bool _parseAddress( ConstConnectionDescriptionPtr description,
     const std::string& hostname = description->getHostname();
     if( !hostname.empty( ))
     {
-        hostent *hptr = gethostbyname( hostname.c_str( ));
-        if( hptr )
-            memcpy( &address.sin_addr.s_addr, hptr->h_addr, hptr->h_length );
+        addrinfo hints;
+        memset( &hints, 0, sizeof(hints));
+        hints.ai_flags = 0;
+        hints.ai_family = AF_INET;
+        hints.ai_socktype = SOCK_STREAM;
+        addrinfo* info = 0;
+
+        if( getaddrinfo( hostname.c_str(), NULL, &hints, &info ) == 0 )
+        {
+            address.sin_addr.s_addr = ((sockaddr_in *)(info->ai_addr))->sin_addr.s_addr;
+            freeaddrinfo( info );
+        }
         else
         {
             LBWARN << "Can't resolve host " << hostname << std::endl;
@@ -103,7 +125,7 @@ static bool _parseAddress( ConstConnectionDescriptionPtr description,
         }
     }
 
-    LBVERB << "Address " << inet_ntoa( address.sin_addr ) << ":"
+    LBVERB << "Address " << getHostName( address ) << ":"
            << ntohs( address.sin_port ) << std::endl;
     return true;
 }
@@ -282,8 +304,8 @@ void SocketConnection::acceptNB()
 
     LBASSERT( _overlappedAcceptData );
     LBASSERT( _overlappedSocket == INVALID_SOCKET );
-    _overlappedSocket = WSASocket( AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0,
-                                   flags );
+    _overlappedSocket = WSASocketW( AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0,
+                                    flags );
 
     if( _overlappedSocket == INVALID_SOCKET )
     {
@@ -362,10 +384,10 @@ ConnectionPtr SocketConnection::acceptSync()
     ConnectionDescriptionPtr newDescription = newConnection->_getDescription();
     newDescription->bandwidth = description->bandwidth;
     newDescription->port = ntohs( remote->sin_port );
-    newDescription->setHostname( inet_ntoa( remote->sin_addr ));
+    newDescription->setHostname( getHostName( *remote ));
 
-    LBDEBUG << "accepted connection from " << inet_ntoa( remote->sin_addr )
-           << ":" << ntohs( remote->sin_port ) << std::endl;
+    LBDEBUG << "accepted connection from " << newDescription->getHostname()
+           << ":" << newDescription->port << std::endl;
     return connection;
 }
 
@@ -598,7 +620,7 @@ bool SocketConnection::_createSocket()
                             WSA_FLAG_OVERLAPPED | WSA_FLAG_SDP :
                             WSA_FLAG_OVERLAPPED;
 
-    const SOCKET fd = WSASocket( AF_INET, SOCK_STREAM, IPPROTO_TCP, 0,0,flags );
+    const SOCKET fd = WSASocketW( AF_INET, SOCK_STREAM, IPPROTO_TCP, 0,0,flags );
 
     if( description->type == CONNECTIONTYPE_SDP )
         LBDEBUG << "Created SDP socket" << std::endl;
@@ -676,7 +698,7 @@ bool SocketConnection::listen()
     if( !bound )
     {
         LBWARN << "Could not bind socket " << _readFD << ": "
-               << lunchbox::sysError << " to " << inet_ntoa( address.sin_addr )
+               << lunchbox::sysError << " to " << getHostName( address )
                << ":" << ntohs( address.sin_port ) << " AF "
                << (int)address.sin_family << std::endl;
 
@@ -714,7 +736,7 @@ bool SocketConnection::listen()
             description->setHostname( hostname );
         }
         else
-            description->setHostname( inet_ntoa( address.sin_addr ));
+            description->setHostname( getHostName( address ));
     }
 #ifndef _WIN32
     //fcntl( _readFD, F_SETFL, O_NONBLOCK );
@@ -723,7 +745,7 @@ bool SocketConnection::listen()
     _setState( STATE_LISTENING );
 
     LBDEBUG << "Listening on " << description->getHostname() << "["
-           << inet_ntoa( address.sin_addr ) << "]:" << description->port
+           << getHostName( address ) << "]:" << description->port
            << " (" << description->toString() << ")" << std::endl;
 
     return true;

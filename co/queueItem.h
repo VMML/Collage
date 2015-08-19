@@ -41,8 +41,8 @@ public:
     /** Destruct this queue item. @version 1.0 */
     CO_API ~QueueItem();
     
-    QueueItem( Producer& master );
     QueueItem( const QueueItem& rhs );
+    explicit QueueItem( Producer& master );
     
     QueueItem &setPositionHint( float pos );
 

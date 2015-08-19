@@ -33,7 +33,7 @@ static lunchbox::a_ssize_t nPackages;
 class QueueItem
 {
 public:
-    QueueItem( co::Producer& queueMaster_ )
+   explicit QueueItem( co::Producer& queueMaster_ )
         : number( nPackages++ )
         , positionHint( 0 )
         , queueMaster( queueMaster_ )

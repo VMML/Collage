@@ -24,7 +24,6 @@
 #pragma warning( disable: 4308 )
 
 #include <co/co.h>
-#include <lunchbox/rng.h>
 #include <boost/serialization/string.hpp>
 #include <boost/serialization/vector.hpp>
 
@@ -32,13 +31,8 @@ template< typename T >
 class Object : public co::Object
 {
 public:
-    Object()
-        : _value()
-    {}
-
-    Object( T value )
-        : _value( value )
-    {}
+    Object() : _value() {}
+    explicit Object( T value ) : _value( value ) {}
 
     T getValue() const
     {
@@ -83,10 +77,7 @@ int main( int argc, char **argv )
     TEST( co::init( argc, argv ) );
 
     co::ConnectionDescriptionPtr connDesc = new co::ConnectionDescription;
-
-    lunchbox::RNG rng;
     connDesc->type = co::CONNECTIONTYPE_TCPIP;
-    connDesc->port = (rng.get<uint16_t>() % 60000) + 1024;
     connDesc->setHostname( "localhost" );
 
     co::LocalNodePtr server = new co::LocalNode;

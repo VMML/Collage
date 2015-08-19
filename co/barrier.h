@@ -38,11 +38,6 @@ namespace detail { class Barrier; }
 class Barrier : public Object
 {
 public:
-#ifdef COLLAGE_V1_API
-    /** @deprecated Does not register or map barrier. */
-    CO_API Barrier( NodePtr master = 0, const uint32_t height = 0 );
-#endif
-
     /**
      * Construct and register a new distributed barrier.
      *
@@ -110,11 +105,12 @@ public:
      * Enter the barrier, blocks until the barrier has been reached.
      *
      * The implementation currently assumes that the master node instance
-     * also enters the barrier. If a timeout happens a timeout exception is
-     * thrown.
+     * also enters the barrier.
+     *
+     * @return true on success, false on timeout or error.
      * @version 1.0
      */
-    CO_API void enter( const uint32_t timeout = LB_TIMEOUT_INDEFINITE );
+    CO_API bool enter( const uint32_t timeout = LB_TIMEOUT_INDEFINITE );
     //@}
 
 protected:

@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2006-2014, Stefan Eilemann <eile@equalizergraphics.com>
+/* Copyright (c) 2006-2015, Stefan Eilemann <eile@equalizergraphics.com>
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License version 2.1 as published
@@ -23,12 +23,11 @@
 #include <co/init.h>
 #include <co/node.h>
 #include <lunchbox/monitor.h>
-#include <lunchbox/rng.h>
 
 #include <iostream>
 
-lunchbox::Monitor< co::Barrier* > _barrier( 0 );
-static uint16_t _port = 0;
+static lunchbox::Monitor< co::Barrier* > _barrier( 0 );
+static lunchbox::Monitor< uint16_t > _port;
 
 class MasterThread : public lunchbox::Thread
 {
@@ -37,11 +36,10 @@ public:
     {
         setName( "Master" );
         co::ConnectionDescriptionPtr desc = new co::ConnectionDescription;
-        desc->port = _port;
-
         co::LocalNodePtr node = new co::LocalNode;
         node->addConnectionDescription( desc );
         TEST( node->listen( ));
+        _port = desc->port;
 
         co::Barrier barrier( node, node->getNodeID(), 3 );
         TEST( barrier.isAttached( ));
@@ -49,13 +47,13 @@ public:
         TEST( barrier.getHeight() ==  3 );
 
         _barrier = &barrier;
-        barrier.enter();
+        TEST( barrier.enter( ));
 
         barrier.setHeight( 2 );
         barrier.commit();
         TEST( barrier.getVersion() == co::VERSION_FIRST + 1 );
 
-        barrier.enter();
+        TEST( barrier.enter( ));
         _barrier.waitEQ( 0 ); // wait for slave thread finish
         node->deregisterObject( &barrier );
         node->close();
@@ -69,8 +67,6 @@ public:
     {
         setName( "Slave" );
         co::ConnectionDescriptionPtr desc = new co::ConnectionDescription;
-        desc->port = _port + 1;
-
         co::LocalNodePtr node = new co::LocalNode;
         node->addConnectionDescription( desc );
         TEST( node->listen( ));
@@ -78,25 +74,27 @@ public:
         co::NodePtr server = new co::Node;
         co::ConnectionDescriptionPtr serverDesc =
             new co::ConnectionDescription;
-        serverDesc->port = _port;
+
+        _port.waitNE( 0 );
+        serverDesc->port = _port.get();
         server->addConnectionDescription( serverDesc );
 
         _barrier.waitNE( 0 );
         TEST( node->connect( server ));
 
-        co::Barrier barrier( node, _barrier.get( ));
+        co::Barrier barrier( node, co::ObjectVersion( _barrier.get( )));
         TEST( barrier.isGood( ));
         TEST( barrier.getVersion() == co::VERSION_FIRST );
 
         std::cerr << "Slave enter" << std::endl;
-        barrier.enter();
+        TEST( barrier.enter( ));
         std::cerr << "Slave left" << std::endl;
 
         barrier.sync( co::VERSION_FIRST + 1 );
         TEST( barrier.getVersion() == co::VERSION_FIRST + 1 );
 
         std::cerr << "Slave enter" << std::endl;
-        barrier.enter();
+        TEST( barrier.enter( ));
         std::cerr << "Slave left" << std::endl;
 
         node->unmapObject( &barrier );
@@ -107,8 +105,6 @@ public:
 int main( int argc, char **argv )
 {
     TEST( co::init( argc, argv ));
-    lunchbox::RNG rng;
-    _port =(rng.get<uint16_t>() % 60000) + 1024;
 
     MasterThread master;
     SlaveThread slave;
@@ -118,7 +114,7 @@ int main( int argc, char **argv )
 
     _barrier.waitNE( 0 );
     std::cerr << "Main enter" << std::endl;
-    _barrier->enter();
+    TEST( _barrier->enter( ));
     std::cerr << "Main left" << std::endl;
 
     slave.join();

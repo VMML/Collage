@@ -84,7 +84,9 @@ namespace detail
 class ReceiverThread : public lunchbox::Thread
 {
 public:
-    ReceiverThread( co::LocalNode* localNode ) : _localNode( localNode ) {}
+    explicit ReceiverThread( co::LocalNode* localNode )
+        : _localNode( localNode ) {}
+
     bool init() override
     {
         const int32_t threadID = ++_threadIDs - 1;
@@ -102,7 +104,7 @@ private:
 class CommandThread : public Worker
 {
 public:
-    CommandThread( co::LocalNode* localNode )
+    explicit CommandThread( co::LocalNode* localNode )
         : Worker( Global::getCommandQueueLimit( ))
         , threadID( 0 )
         , _localNode( localNode )
@@ -273,13 +275,6 @@ LocalNode::~LocalNode( )
 
 bool LocalNode::initLocal( const int argc, char** argv )
 {
-#ifndef NDEBUG
-    LBVERB << lunchbox::disableFlush << "args: ";
-    for( int i=0; i<argc; i++ )
-         LBVERB << argv[i] << ", ";
-    LBVERB << std::endl << lunchbox::enableFlush;
-#endif
-
     // We do not use getopt_long because it really does not work due to the
     // following aspects:
     // - reordering of arguments
@@ -778,9 +773,9 @@ LocalNode::SendToken LocalNode::acquireSendToken( NodePtr node )
 
     try
     {
-        request.wait(  Global::getTimeout() );
+        request.wait( Global::getTimeout( ));
     }
-    catch ( lunchbox::FutureTimeout& )
+    catch( lunchbox::FutureTimeout& )
     {
         LBERROR << "Timeout while acquiring send token " << request.getID()
                 << std::endl;

@@ -1,3 +1,4 @@
+
 /* Copyright (c) 2011-2015 Cedric Stalder <cedric.stalder@gmail.com>>
  *                         Stefan Eilemann <eile@eyescale.ch>
  *                         Daniel Nachbaur <danielnachbaur@gmail.com>
@@ -25,7 +26,6 @@
 #include <co/global.h>
 #include <co/init.h>
 #include <co/node.h>
-#include <lunchbox/rng.h>
 
 #include <iostream>
 #define CO_TEST_RUNTIME 6000
@@ -34,32 +34,34 @@
 class BarrierThread : public lunchbox::Thread
 {
 public:
-    BarrierThread( const uint32_t nOps, const uint32_t port )
-        : _nOps( nOps )
-        , _numExceptions( 0 )
+    explicit BarrierThread( const uint32_t nOps )
+        : port( 0 )
+        , _nOps( nOps )
+        , _nTimeouts( 0 )
         , _node( new co::LocalNode )
     {
         co::ConnectionDescriptionPtr description =
             new co::ConnectionDescription;
         description->type = co::CONNECTIONTYPE_TCPIP;
-        description->port = port;
         _node->addConnectionDescription( description );
-
         TEST( _node->listen( ));
+        port = description->port;
     }
 
+    size_t getNumTimeouts() const { return _nTimeouts; }
+    uint16_t port;
+
 protected:
-    const uint32_t   _nOps;
-    uint32_t         _numExceptions;
+    const uint32_t _nOps;
+    size_t _nTimeouts;
     co::LocalNodePtr _node;
 };
 
 class ServerThread : public BarrierThread
 {
 public:
-    ServerThread( const uint32_t nNodes, const uint32_t nOps,
-                  const uint16_t serverPort )
-        : BarrierThread( nOps, serverPort )
+    ServerThread( const uint32_t nNodes, const uint32_t nOps )
+        : BarrierThread( nOps )
     {
         _barrier = new co::Barrier( _node, _node->getNodeID(), nNodes + 1 );
         TEST( _barrier->isAttached( ));
@@ -76,8 +78,8 @@ public:
         _node = 0;
     }
 
-    co::ObjectVersion getBarrierID() const { return _barrier; }
-    uint32_t getNumExceptions() const { return _numExceptions; }
+    co::ObjectVersion getBarrierID() const
+    { return co::ObjectVersion( _barrier ); }
 
 protected:
     void run() final
@@ -86,15 +88,8 @@ protected:
         {
             const uint32_t timeout = co::Global::getIAttribute(
                      co::Global::IATTR_TIMEOUT_DEFAULT );
-            try
-            {
-                _barrier->enter( timeout );
-            }
-            catch( co::Exception& e )
-            {
-                TEST( e.getType() == co::Exception::TIMEOUT_BARRIER );
-                ++_numExceptions;
-            }
+            if( !_barrier->enter( timeout ))
+                ++_nTimeouts;
         }
     }
 private:
@@ -104,10 +99,9 @@ private:
 class NodeThread : public BarrierThread
 {
 public:
-    NodeThread( const co::ObjectVersion& barrierID, const uint32_t port,
-                const uint32_t nOps, const uint32_t timeToSleep,
-                const uint16_t serverPort )
-         : BarrierThread( nOps, port )
+    NodeThread( const co::ObjectVersion& barrierID, const uint32_t nOps,
+                const uint32_t timeToSleep, const uint16_t serverPort )
+         : BarrierThread( nOps )
          , _timeToSleep( timeToSleep )
     {
         co::NodePtr server = new co::Node;
@@ -136,8 +130,6 @@ public:
         _node = 0;
     }
 
-    uint32_t getNumExceptions() const { return _numExceptions; }
-
 protected:
     void run() final
     {
@@ -147,15 +139,8 @@ protected:
 
             const uint32_t timeout = co::Global::getIAttribute(
                      co::Global::IATTR_TIMEOUT_DEFAULT );
-            try
-            {
-                _barrier->enter( timeout );
-            }
-            catch( co::Exception& e )
-            {
-                TEST( e.getType() == co::Exception::TIMEOUT_BARRIER );
-                ++_numExceptions;
-            }
+            if( !_barrier->enter( timeout ))
+                ++_nTimeouts;
         }
     }
 
@@ -168,19 +153,19 @@ typedef std::vector< NodeThread* > NodeThreads;
 
 
 /* the test perform no timeout */
-void testNormal( const uint16_t serverPort )
+void testNormal()
 {
     co::Global::setIAttribute( co::Global::IATTR_TIMEOUT_DEFAULT, 10000 );
     NodeThreads nodeThreads;
     nodeThreads.resize(NSLAVES);
 
-    ServerThread server( NSLAVES, 1, serverPort );
+    ServerThread server( NSLAVES, 1 );
     server.start();
 
     for( uint32_t i = 0; i < NSLAVES; i++ )
     {
-        nodeThreads[i] = new NodeThread( server.getBarrierID(), serverPort+i+1,
-                                         1, 0, serverPort );
+        nodeThreads[i] = new NodeThread( server.getBarrierID(), 1, 0,
+                                         server.port );
         nodeThreads[i]->start();
     }
 
@@ -189,56 +174,54 @@ void testNormal( const uint16_t serverPort )
     for( uint32_t i = 0; i < NSLAVES; i++ )
     {
         nodeThreads[i]->join();
-        TEST( nodeThreads[i]->getNumExceptions() == 0 );
+        TEST( nodeThreads[i]->getNumTimeouts() == 0 );
         delete nodeThreads[i];
     }
 
-    TEST( server.getNumExceptions() == 0 );
+    TEST( server.getNumTimeouts() == 0 );
 }
 
 /* the test perform no timeout */
-void testException( const uint16_t serverPort )
+void testException()
 {
     co::Global::setIAttribute( co::Global::IATTR_TIMEOUT_DEFAULT, 2000 );
     NodeThreads nodeThreads;
     nodeThreads.resize( NSLAVES );
 
-    ServerThread server( NSLAVES, 1, serverPort );
+    ServerThread server( NSLAVES, 1 );
     server.start();
 
     for( uint32_t i = 0; i < NSLAVES - 1; i++ )
     {
-        nodeThreads[i] = new NodeThread( server.getBarrierID(), serverPort+i+1,
-                                         1, 0, serverPort );
+        nodeThreads[i] = new NodeThread( server.getBarrierID(), 1, 0,
+                                         server.port );
         nodeThreads[i]->start();
     }
 
     TEST( server.join() );
-    TEST( server.getNumExceptions() == 1 );
+    TEST( server.getNumTimeouts() == 1 );
     for( uint32_t i = 0; i < NSLAVES - 1; i++ )
     {
         TEST( nodeThreads[i]->join() );
-        TEST( nodeThreads[i]->getNumExceptions() == 1 );
+        TEST( nodeThreads[i]->getNumTimeouts() == 1 );
         delete nodeThreads[i];
     }
 }
 
-void testSleep( const uint16_t serverPort )
+void testSleep()
 {
     co::Global::setIAttribute( co::Global::IATTR_TIMEOUT_DEFAULT, 200 );
     static const size_t numThreads = 5;
     NodeThreads nodeThreads( numThreads );
-    ServerThread server( numThreads, 1, serverPort );
+    ServerThread server( numThreads, 1 );
     server.start();
 
-    uint16_t port = serverPort;
     uint32_t sleep = 50;
-
     for( size_t i = 0; i < numThreads; ++i )
     {
         sleep += 50;
-        nodeThreads[i] = new NodeThread( server.getBarrierID(), ++port,
-                                         5, sleep, serverPort );
+        nodeThreads[i] = new NodeThread( server.getBarrierID(), 5, sleep,
+                                         server.port );
         nodeThreads[i]->start();
     }
 
@@ -259,11 +242,10 @@ void testSleep( const uint16_t serverPort )
 int main( int argc, char **argv )
 {
     TEST( co::init( argc, argv ));
-    static lunchbox::RNG rng;
 
-    testNormal( (rng.get<uint16_t>() % 60000) + 1024 );
-    testException( (rng.get<uint16_t>() % 60000) + 1024 );
-    testSleep( (rng.get<uint16_t>() % 60000) + 1024 );
+    testNormal();
+    testException();
+    testSleep();
 
     co::exit();
     return EXIT_SUCCESS;

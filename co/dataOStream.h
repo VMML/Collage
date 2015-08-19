@@ -133,12 +133,12 @@ public:
     void serializeChildren( const std::vector< C* >& children );
     //@}
 
-        /** @internal */
-        CO_API lunchbox::Bufferb& getBuffer();
+    /* vmml: exposed */
+    CO_API lunchbox::Bufferb& getBuffer();
 
 protected:
     CO_API DataOStream(); //!< @internal
-    DataOStream( DataOStream& rhs );  //!< @internal
+    explicit DataOStream( DataOStream& rhs );  //!< @internal
     virtual CO_API ~DataOStream(); //!< @internal
 
     /** @internal Initialize the given compressor. */

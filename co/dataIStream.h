@@ -64,7 +64,7 @@ public:
     template< class T > DataIStream& operator >> ( T& value )
         { _read( &value, sizeof( value )); _swap( value ); return *this; }
 
-    /** Read a plain data item. @version 1.x */
+    /** Read a plain data item. @version 1.0-vmml */
     template< class T > const DataIStream& operator >> ( T& value ) const
         { _read( &value, sizeof( value )); _swap( value ); return *this; }
 
@@ -169,8 +169,8 @@ public:
 protected:
     /** @name Internal */
     //@{
-    CO_API DataIStream( const bool swap );
-    DataIStream( const DataIStream& );
+    CO_API explicit DataIStream( const bool swap );
+    explicit DataIStream( const DataIStream& );
     CO_API virtual ~DataIStream();
 
     virtual bool getNextBuffer( uint32_t& compressor, uint32_t& nChunks,

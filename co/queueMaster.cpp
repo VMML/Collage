@@ -50,13 +50,12 @@ namespace detail
 class ItemBuffer : public lunchbox::Bufferb, public lunchbox::Referenced
 {
 public:
-    ItemBuffer( lunchbox::Bufferb& from )
+    explicit ItemBuffer( lunchbox::Bufferb& from )
         : lunchbox::Bufferb( from )
         , lunchbox::Referenced()
     {}
 
-    ~ItemBuffer()
-    {}
+    ~ItemBuffer() {}
 };
 
 typedef lunchbox::RefPtr< ItemBuffer > ItemBufferPtr;
@@ -64,7 +63,7 @@ typedef lunchbox::RefPtr< ItemBuffer > ItemBufferPtr;
 class QueueMaster : public co::Dispatcher
 {
 public:
-    QueueMaster( co::QueueMaster& parent )
+    explicit QueueMaster( co::QueueMaster& parent )
         : co::Dispatcher()
         , _parent( parent )
         , _nNodes(0)
@@ -168,8 +167,7 @@ void QueueMaster::attach( const uint128_t& id, const uint32_t instanceID )
 {
     Object::attach( id, instanceID );
 
-    LocalNodePtr localNode = getLocalNode();
-    CommandQueue* queue = localNode->getCommandThreadQueue();
+    CommandQueue* queue = getLocalNode()->getCommandThreadQueue();
     registerCommand( CMD_QUEUE_GET_ITEM,
                      CommandFunc< detail::QueueMaster >(
                          _impl, &detail::QueueMaster::cmdGetItem ), queue );

@@ -29,7 +29,7 @@ namespace detail
 class Buffer
 {
 public:
-    Buffer( BufferListener* listener_ )
+    explicit Buffer( BufferListener* listener_ )
         : listener( listener_ )
         , free( true )
     {}
