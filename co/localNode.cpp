@@ -201,7 +201,7 @@ public:
     ReceiverThread* receiverThread;
     CommandThread* commandThread;
 
-    lunchbox::Lockable< lunchbox::Servus > service;
+    lunchbox::Lockable< servus::Servus > service;
 
     // Performance counters:
     a_ssize_t counters[ co::LocalNode::COUNTER_ALL ];
@@ -209,8 +209,8 @@ public:
 }
 
 LocalNode::LocalNode( const uint32_t type )
-        : Node( type )
-        , _impl( new detail::LocalNode )
+    : Node( type )
+    , _impl( new detail::LocalNode )
 {
     _impl->receiverThread = new detail::ReceiverThread( this );
     _impl->commandThread  = new detail::CommandThread( this );
@@ -775,11 +775,11 @@ LocalNode::SendToken LocalNode::acquireSendToken( NodePtr node )
     {
         request.wait( Global::getTimeout( ));
     }
-    catch( lunchbox::FutureTimeout& )
+    catch( const lunchbox::FutureTimeout& )
     {
         LBERROR << "Timeout while acquiring send token " << request.getID()
                 << std::endl;
-        request.relinquish();
+        request.unregister();
         return 0;
     }
     return new co::SendToken( node );
@@ -926,7 +926,7 @@ NodePtr LocalNode::_connectFromZeroconf( const NodeID& nodeID )
     lunchbox::ScopedWrite mutex( _impl->service );
 
     const Strings& instances =
-        _impl->service->discover( lunchbox::Servus::IF_ALL, 500 );
+        _impl->service->discover( servus::Servus::IF_ALL, 500 );
     for( StringsCIter i = instances.begin(); i != instances.end(); ++i )
     {
         const std::string& instance = *i;
@@ -1046,11 +1046,11 @@ uint32_t LocalNode::_connect( NodePtr node, ConnectionPtr connection )
     {
         connected = request.wait( 10000 /*ms*/ );
     }
-    catch( lunchbox::FutureTimeout& )
+    catch( const lunchbox::FutureTimeout& )
     {
         LBWARN << "Node connection handshake timeout - " << node
                << " not a Collage node?" << std::endl;
-        request.relinquish();
+        request.unregister();
         return CONNECT_TIMEOUT;
     }
 
@@ -1519,7 +1519,7 @@ void LocalNode::_exitService()
 Zeroconf LocalNode::getZeroconf()
 {
     lunchbox::ScopedWrite mutex( _impl->service );
-    _impl->service->discover( lunchbox::Servus::IF_ALL, 500 );
+    _impl->service->discover( servus::Servus::IF_ALL, 500 );
     return Zeroconf( _impl->service.data );
 }
 

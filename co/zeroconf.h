@@ -30,14 +30,14 @@ namespace detail { class Zeroconf; }
 /**
  * A zeroconf communicator.
  *
- * When Collage is compiled with Servus support (COLLAGE_USE_SERVUS), it uses the
- * ZeroConf service "_collage._tcp" to announce the presence of a listening
+ * When Collage is compiled with Servus support (COLLAGE_USE_SERVUS), it uses
+ * the ZeroConf service "_collage._tcp" to announce the presence of a listening
  * LocalNode using the zeroconf protocol, unless the LocalNode has no listening
  * connections. This class may be used to add additional key/value pairs to this
  * service to announce application-specific data, and to retrieve a snapshot of
  * all key/value pairs of all discovered nodes on the network. Internal keys
  * start with 'co_', this prefix should not be used by applications. Please
- * refer to the documentation of lunchbox::Servus::set() for details.
+ * refer to the documentation of servus::Servus::set() for details.
  *
  * When Collage is compiled without Servus support, this class implements
  * dummy functionality.
@@ -81,7 +81,7 @@ public:
                                    const std::string& key ) const;
 private:
     Zeroconf();
-    explicit Zeroconf( lunchbox::Servus& service );
+    explicit Zeroconf( servus::Servus& service );
     friend class LocalNode;
 
     detail::Zeroconf* _impl;
