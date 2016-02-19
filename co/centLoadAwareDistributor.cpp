@@ -1,5 +1,6 @@
 
-/* Copyright (c) 2014-2015, David Steiner <steiner@ifi.uzh.ch>
+/* Copyright (c) 2014-2016, David Steiner      <steiner@ifi.uzh.ch>
+ *               2016,      Enrique G. Paredes <egparedes@ifi.uzh.ch>
  *
  * This file is part of Collage <https://github.com/Eyescale/Collage>
  *
@@ -37,11 +38,14 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/concept_check.hpp>
 
+#include <fstream>
 #include <sstream>
 #include <deque>
+#include <cmath>
 
 #define MAX_DISTANCE            1.f
 #define SCORE_WINDOW_SIZE       128
+#define LOG_NODE_POS
 
 namespace co
 {
@@ -55,13 +59,10 @@ public:
     ItemBuffer( lunchbox::Bufferb& from )
         : lunchbox::Bufferb( from )
         , lunchbox::Referenced()
-//         , _number( number )
     {}
 
     ~ItemBuffer()
     {}
-    
-//     size_t _number;
 };
 
 typedef lunchbox::RefPtr< ItemBuffer > ItemBufferPtr;
@@ -74,7 +75,13 @@ struct NodeInfo
     float       distRight;
     float       totalScore;
     float       totalLoad;
+    int         idleCounter;
 };
+
+std::ostream& operator << (std::ostream& os, const NodeInfo& ni)
+{
+    return os << "position: " << ni.position << ", distLeft: " << ni.distLeft << ", distRight: " << ni.distRight << ", totalScore: " << ni.totalScore << ", totalLoad: " << ni.totalLoad;
+}
 
 struct Score
 {
@@ -100,7 +107,11 @@ public:
         , _perfLogger( NULL )
         , _nNodes( 0 )
         , _totalScore( 0 )
-    {}
+    {
+#ifdef LOG_NODE_POS
+        _outFile.open( "centLoadAwareDistributor.log" );
+#endif
+    }
 
     void initNodes();
 
@@ -108,6 +119,9 @@ public:
 
     void updateScores( float score, const NodeID& nodeID );
 
+#ifdef LOG_NODE_POS
+    std::ofstream _outFile;
+#endif
     Nodes _nodes;
     NodeMap _nodeMap;
     ItemMap _itemMap;
@@ -126,10 +140,10 @@ void CentLoadAwareDistributor::initNodes()
 
     float maxDist = MAX_DISTANCE / _nNodes;
     _itemMap.setMaxDistance( maxDist );
-    _itemMap.setMaxKey( 1.f );
+    _itemMap.setKeyInterval( 0.f, 1.f );
 
     std::stringstream ss;
-//     ss << "\tpos\t";
+    ss << "\tpos\t";
     for( size_t i = 0; i < _nNodes; ++i )
     {
         float pos = (i + .5f) / static_cast<float>( _nNodes );
@@ -138,9 +152,16 @@ void CentLoadAwareDistributor::initNodes()
         nodeInfo.distRight = maxDist;
         nodeInfo.totalScore = 0;
         nodeInfo.totalLoad = 0;
+        nodeInfo.idleCounter = 0;
         nodeInfo.position = pos;
         ss << pos << " ";
+#ifdef LOG_NODE_POS
+        _outFile << "init_node: " << i << ", " << nodeInfo << std::endl;
+#endif
     }
+#ifdef LOG_NODE_POS
+    _outFile.flush();
+#endif
     ss << "\t\t\t\t\t";
     _perfLogger->log( _producer.getLocalNode()->getNodeID(), "init nodes", ss.str(), "SERVER");
 }
@@ -148,99 +169,82 @@ void CentLoadAwareDistributor::initNodes()
 void CentLoadAwareDistributor::updateNodes()
 {
     std::stringstream ss;
-//     ss << "\tpos\t";
     if( _totalScore <= std::numeric_limits< float >::epsilon( ))
         return;
 
+    ss << "\tpos\t";
+    std::vector< float > newPositions(_nNodes );
     for( size_t i = 0; i < _nNodes; ++i )
     {
-        NodeID id = _nodes[ i ]->getNodeID();
-        NodeInfo& nodeInfo = _nodeMap[ id ];
-        float pos = nodeInfo.position;
+        const NodeInfo& nodeInfo = _nodeMap[ _nodes[ i ]->getNodeID() ];
+        const float pos = _nodeMap[ _nodes[ i ]->getNodeID() ].position;
 
-        int prev;
-        int prevIndex = prev = i - 1;
-        bool left = false;
+        int prevIndex = i - 1;
         if( prevIndex < 0 )
-        {
-            prevIndex += _nNodes;
-            left = true;
-        }
-        NodeInfo prevInfo = { 0.f, 0, 0, 0, 0 };
-        NodeID prevID = _nodes[ prevIndex ]->getNodeID();
-        prevInfo = _nodeMap[ prevID ];
-        float prevPos = left ? prevInfo.position - 1.f : prevInfo.position;
+            prevIndex = _nNodes - 1;
 
-        float prevScore = prevInfo.totalScore + 1.f; /* > std::numeric_limits< float >::epsilon() ? 
-            prevInfo.totalScore : 1.f;*/
-        float nodeScore = nodeInfo.totalScore + 1.f; /* > std::numeric_limits< float >::epsilon() ? 
-            nodeInfo.totalScore : 1.f;*/
-        float sum = prevScore + nodeScore;
-        float prevWeight = prevScore / sum;
-        float weight = nodeScore / sum;
-        float prevBorder = prevPos * weight + pos * prevWeight;
+        const NodeInfo& prevInfo = _nodeMap[ _nodes[ prevIndex ]->getNodeID() ];
+        const float prevPos = ( prevInfo.position > pos ) ? prevInfo.position - 1.f : prevInfo.position;
 
-        int next;
-        int nextIndex = next = i + 1;
-        bool right = false;
+        const float prevScore = prevInfo.totalScore + 1.f;
+        const float nodeScore = nodeInfo.totalScore + 1.f;
+        float addedScore = prevScore + nodeScore;
+        const float prevWeight = prevScore / addedScore;
+        float weight = nodeScore / addedScore;
+        const float prevBorder = prevPos * weight + pos * prevWeight;
+
+        int nextIndex = i + 1;
         if( nextIndex >= static_cast<int>( _nNodes ))
-        {
-            nextIndex -= _nNodes;
-            right = true;
-        }
-        NodeInfo nextInfo = { 1.f, 0, 0, 0, 0 };
-        NodeID nextID = _nodes[ nextIndex ]->getNodeID();
-        nextInfo = _nodeMap[ nextID ];
-        float nextPos = right ? nextInfo.position + 1.f : nextInfo.position;
+            nextIndex = 0;
 
-        float nextScore = nextInfo.totalScore + 1.f; /* > std::numeric_limits< float >::epsilon() ? 
-            nextInfo.totalScore : 1.f;*/
-        sum = nodeScore + nextScore;
-        float nextWeight = nextScore / sum;
-        weight = nodeScore / sum;
-        float nextBorder = pos * nextWeight + nextPos * weight;
+        const NodeInfo& nextInfo = _nodeMap[ _nodes[ nextIndex ]->getNodeID() ];
+        const float nextPos = ( nextInfo.position < pos ) ? nextInfo.position + 1.f : nextInfo.position;
 
-        float newPos = (prevBorder + nextBorder) * .5f;         // resposition
+        const float nextScore = nextInfo.totalScore + 1.f;
+        addedScore = nodeScore + nextScore;
+        const float nextWeight = nextScore / addedScore;
+        weight = nodeScore / addedScore;
+        const float nextBorder = pos * nextWeight + nextPos * weight;
+
+        float newPos = (prevBorder + nextBorder) * .5f;         // node repositioning
         if( newPos < 0.f )
             newPos += 1.f;
         else if( newPos > 1.f )
             newPos -= 1.f;
-        nodeInfo.position = newPos;
+        newPositions[i]= newPos;
         ss << newPos << " ";
     }
     ss << "\tdist\t";
     for( size_t i = 0; i < _nNodes; ++i )
     {
-        NodeID id = _nodes[ i ]->getNodeID();
-        NodeInfo& nodeInfo = _nodeMap[ id ];
-        float pos = nodeInfo.position;
+        const float pos = newPositions[i];
+        NodeInfo& nodeInfo = _nodeMap[ _nodes[ i ]->getNodeID() ];
+
+        nodeInfo.position = pos;
 
         int prevIndex = i - 1;
-        bool left = false;
         if( prevIndex < 0 )
-        {
-            prevIndex += _nNodes;
-            left = true;
-        }
-        NodeInfo prevInfo = { 0.f, 0, 0, 0, 0 };
-        NodeID prevID = _nodes[ prevIndex ]->getNodeID();
-        prevInfo = _nodeMap[ prevID ];
-        float prevPos = left ? prevInfo.position - 1.f : prevInfo.position;
+            prevIndex = _nNodes - 1;
 
-        int nextIndex = i + 1;
-        bool right = false;
-        if( nextIndex >= static_cast<int>( _nNodes ))
-        {
-            nextIndex -= _nNodes;
-            right = true;
-        }
-        NodeInfo nextInfo = { 1.f, 0, 0, 0, 0 };
-        NodeID nextID = _nodes[ nextIndex ]->getNodeID();
-        nextInfo = _nodeMap[ nextID ];
-        float nextPos = right ? nextInfo.position + 1.f : nextInfo.position;
+        float prevPos = newPositions[prevIndex];
+        if( prevPos > pos )
+            prevPos -= 1.f;
 
         nodeInfo.distLeft = pos - prevPos;
+
+        int nextIndex = i + 1;
+        if( nextIndex >= static_cast<int>( _nNodes ))
+            nextIndex = 0;
+
+        float nextPos = newPositions[nextIndex];
+        if( nextPos < pos )
+            nextPos += 1.f;
+
         nodeInfo.distRight = nextPos - pos;
+
+#ifdef LOG_NODE_POS
+        _outFile << "node: " << i << ", " << nodeInfo << std::endl;
+#endif
         ss << "(" << nodeInfo.distLeft << " " << nodeInfo.distRight << ")";
     }
     ss << "\t\t\t";
@@ -250,27 +254,22 @@ void CentLoadAwareDistributor::updateNodes()
 void CentLoadAwareDistributor::updateScores(float score, const NodeID& nodeID)
 {
     _scores.push_back( Score( score, nodeID ));
+    _nodeMap[ _scores.back().nodeID ].totalScore += score;
+
     if( _scores.size() > SCORE_WINDOW_SIZE )
+    {
+        _nodeMap[ _scores.front().nodeID ].totalScore -= _scores.front().score;
         _scores.pop_front();
+    }
 
     float sum = 0.f;
-    _totalScore = 0;
     for( Scores::const_iterator it = _scores.begin();
          it != _scores.end();
          ++it )
     {
         sum += it->score;
-        _nodeMap[ it->nodeID ].totalScore = 0;
     }
-
-    for( Scores::const_iterator it = _scores.begin();
-         it != _scores.end();
-         ++it )
-    {
-        NodeInfo &nodeInfo = _nodeMap[ it->nodeID ];
-        nodeInfo.totalScore += it->score;
-    }
-    _totalScore += sum;
+    _totalScore = sum;
 
     _nodeMap[ nodeID ].totalLoad += score;
     _totalLoad += score;
@@ -282,7 +281,7 @@ void CentLoadAwareDistributor::updateScores(float score, const NodeID& nodeID)
         ss << _nodeMap[ id ].totalScore << " ";
     }
     ss << "\ttotal\t" << _totalScore << "\t\t\t";
-    _perfLogger->log( _producer.getLocalNode()->getNodeID(), "updated scores", ss.str(), "SERVER");
+    _perfLogger->log( _producer.getLocalNode()->getNodeID(), "updated scores", ss.str(), "SERVER" );
 }
 
 }
@@ -332,10 +331,7 @@ bool CentLoadAwareDistributor::cmdGetItem( co::ICommand& comd )
     const uint32_t slaveInstanceID = command.get< uint32_t >();
     const int32_t requestID = command.get< int32_t >();
 
-//     std::cout << "score: " << score << std::endl;
-
     detail::NodeInfo& nodeInfo = _impl->_nodeMap[ nodeID ];
-//     _impl->_itemMap.setMaxDistance( maxDist );
 
     detail::Items items;
     if( nodeInfo.distLeft > 0.f && nodeInfo.distRight > 0.f )
@@ -354,27 +350,35 @@ bool CentLoadAwareDistributor::cmdGetItem( co::ICommand& comd )
         {
             _impl->_producer.send( command.getNode(), CMD_QUEUE_ITEM, slaveInstanceID ) << false
                 << Array< const void >( item->getData(), item->getSize( ));
-//             ss << item->_number << " ";
             totalScore += 1.f;
+            nodeInfo.idleCounter = 0;
         }
     }
     ss << ")\trequested\t" << itemsRequested << "\t";
-    _impl->_perfLogger->log( nodeID, "popped items from", ss.str( ), "SERVER");
 
-    _impl->updateScores( totalScore, nodeID );
-
+    if( totalScore > .0f )
+    {
+        _impl->updateScores( totalScore, nodeID );
+        _impl->_perfLogger->log( nodeID, "popped items from", ss.str( ), "SERVER");
+    }
     if( itemsRequested > items.size( ))
     {
         if( _impl->_itemMap.size() < 1 )
         {
             _impl->_producer.send( command.getNode(), CMD_QUEUE_EMPTY, slaveInstanceID ) << requestID;
             _impl->_perfLogger->log( nodeID, "sent empty queue command", ss.str( ), "SERVER");
+            nodeInfo.idleCounter = 0;
         }
         else
         {
             // dummy message to prevent slave from being stuck
             _impl->_producer.send( command.getNode(), CMD_QUEUE_ITEM, slaveInstanceID ) << true;
             _impl->_perfLogger->log( nodeID, "sent wait command", ss.str( ), "SERVER");
+            if( nodeInfo.idleCounter > 2000 )
+            {
+                exit(-1);
+            }
+            ++nodeInfo.idleCounter;
         }
     }
 
@@ -383,12 +387,7 @@ bool CentLoadAwareDistributor::cmdGetItem( co::ICommand& comd )
 
 void CentLoadAwareDistributor::notifyQueueEnd()
 {
-    // TEST
-//     _impl->_totalScore = 0;
-//     _impl->initNodes();
-
     std::stringstream ss;
-    _impl->_totalLoad = 0;
     for( size_t i = 0; i < _impl->_nNodes; ++i )
     {
         NodeID id = _impl->_nodes[ i ]->getNodeID();
@@ -397,6 +396,8 @@ void CentLoadAwareDistributor::notifyQueueEnd()
         nodeInfo.totalLoad = 0;
     }
     ss << "\ttotal\t" << _impl->_totalLoad << "\t\t\t";
+    _impl->_totalLoad = 0;
+
     _impl->_perfLogger->log( _impl->_producer.getLocalNode()->getNodeID(), "finished queue with load", ss.str(), "SERVER");
 }
 
@@ -404,6 +405,10 @@ void CentLoadAwareDistributor::setSlaveNodes(const co::Nodes& nodes)
 {
     _impl->_nodes = nodes;
     _impl->_nNodes = nodes.size();
+    if( _impl->_nodeMap.size() < 1 )
+    {
+        _impl->initNodes();
+    }
 }
 
 void CentLoadAwareDistributor::setPerfLogger(co::PerfLogger* perfLogger)
